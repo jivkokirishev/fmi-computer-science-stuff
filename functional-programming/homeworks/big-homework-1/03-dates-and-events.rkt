@@ -63,13 +63,14 @@
     (else #f)))
 
 (define (calcJDN date)
+  (define D (day date))
   (define M (month date))
   (define Y (year date))
-  (floor (+ (/ (* 1461 (+ Y 4800 (/ (- M 14) 12))) 4)
-            (/ (* 367 (- M 2 (* 12 (/ (- M 14) 12)))) 12)
-            (- (/ (* 3 (/ (+ (year date) 4900 (/ (- (month date) 14) 12)) 100)) 4))
-            (day date)
-            (- 32075))))
+  (+ (quotient (* 1461 (+ Y 4800 (quotient (- M 14) 12))) 4)
+            (quotient (* 367 (- M 2 (* 12 (quotient (- M 14) 12)))) 12)
+            (- 0 (quotient (* 3 (quotient (+ Y 4900 (quotient (- M 14) 12)) 100)) 4))
+            D
+            (- 0 32075)))
 
 (define (weekday date)
   (let ([JD (+ (remainder (calcJDN date) 7) 1)])
@@ -194,7 +195,7 @@
   (test-suite "weekday tests"
     (check-equal? (weekday (make-date 21 11 2019)) 'Thursday)
     (check-equal? (weekday (make-date 22 11 2019)) 'Friday)
-;    (check-equal? (weekday (make-date 15 3 2018)) 'Wednesday)  ???
+    (check-equal? (weekday (make-date 17 3 2018)) 'Saturday)
     (check-equal? (weekday (make-date 13 4 2020)) 'Monday)
   )
 )
@@ -204,7 +205,7 @@
     (check-equal? (next-weekday 'Thursday (make-date 21 11 2019)) '(21 11 2019))
     (check-equal? (next-weekday 'Tuesday (make-date 21 11 2019)) '(26 11 2019))
     (check-equal? (next-weekday 'Monday (make-date 10 4 2020)) '(13 4 2020))
-;    (check-equal? (next-weekday 'Saturday (make-date 24 5 2020)) '(24 5 2020))  ???
+    (check-equal? (next-weekday 'Wednesday (make-date 28 5 2020)) '(3 6 2020))
   )
 )
 
@@ -217,6 +218,53 @@
 )
 
 
+(define events-for-day-tests
+  (test-suite "events-for-day tests"
+    (check-equal? (events-for-day (make-date 27 11 2019)
+                                                       (list (cons (make-date 27 11 2019) "Първа лекция за Хаскел")
+                                                             (cons (make-date 27 11 2019) "Спират водата в Младост")
+                                                             (cons (make-date 28 11 2019) "Спират водата в Лозенец")))
+                                       '(((27 11 2019) . "Първа лекция за Хаскел") ((27 11 2019) . "Спират водата в Младост")))
+    (check-equal? (events-for-day (make-date 28 11 2019)
+                                                       (list (cons (make-date 27 11 2019) "Първа лекция за Хаскел")
+                                                             (cons (make-date 27 11 2019) "Спират водата в Младост")
+                                                             (cons (make-date 28 11 2019) "Спират водата в Лозенец")))
+                                       '(((28 11 2019) . "Спират водата в Лозенец")))
+  )
+)
+
+
+
+(define calendar-tests
+  (test-suite "calendar tests"
+    (check-equal? (calendar (list (cons (make-date 27 11 2019) "Първа лекция за Хаскел")
+                                  (cons (make-date 25 12 2019) "Коледа")
+                                  (cons (make-date 27 11 2019) "Спират водата в Младост")
+                                  (cons (make-date 23 3 2018) "Концерт на Лепа Брена")))
+                                       '(((23 3 2018) "Концерт на Лепа Брена")
+                                         ((27 11 2019) "Първа лекция за Хаскел" "Спират водата в Младост")
+                                         ((25 12 2019) "Коледа")))
+    (check-equal? (calendar (list (cons (make-date 27 11 2019) "Спират водата в Студентски")
+                                  (cons (make-date 27 11 2019) "Първа лекция за Хаскел")
+                                  (cons (make-date 25 12 2019) "Коледа")
+                                  (cons (make-date 27 11 2019) "Спират водата в Младост")
+                                  (cons (make-date 23 3 2018) "Концерт на Лепа Брена")))
+                                       '(((23 3 2018) "Концерт на Лепа Брена")
+                                         ((27 11 2019) "Спират водата в Студентски" "Първа лекция за Хаскел" "Спират водата в Младост")
+                                         ((25 12 2019) "Коледа")))
+   (check-equal? (calendar (list (cons (make-date 27 11 2019) "Спират водата в Студентски")
+                                 (cons (make-date 26 11 2019) "Първа лекция за Хаскел")
+                                 (cons (make-date 25 12 2019) "Коледа")
+                                 (cons (make-date 21 11 2019) "Спират водата в Младост")
+                                 (cons (make-date 29 3 2018) "Концерт на Лепа Брена")))
+                                       '(((29 3 2018) "Концерт на Лепа Брена")
+                                         ((21 11 2019) "Спират водата в Младост")
+                                         ((26 11 2019) "Първа лекция за Хаскел")
+                                         ((27 11 2019) "Спират водата в Студентски")
+                                         ((25 12 2019) "Коледа")))
+  )
+)
+
 
 
 (run-tests make-date-tests 'verbose)
@@ -228,4 +276,6 @@
 (run-tests weekday-tests 'verbose)
 (run-tests next-weekday-tests 'verbose)
 
+(run-tests events-for-day-tests 'verbose)
 (run-tests any?-tests 'verbose)
+(run-tests calendar-tests 'verbose)
